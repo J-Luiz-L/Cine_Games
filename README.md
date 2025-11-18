@@ -6,7 +6,7 @@ Este projeto tem como objetivo desenvolver um sistema de linha de comando (CLI) 
 
 O sistema permitirá o cadastro de jogos, o registro de progresso de jogatina, a organização por coleções e a geração de relatórios de desempenho e tempo jogado.
 
-## Estrutura de Classes Planejada (Modelagem POO)
+## Estrutura de Classes Planejada 
 
 A solução será estruturada em torno das seguintes classes principais:
 
@@ -29,3 +29,103 @@ A solução será estruturada em torno das seguintes classes principais:
 5.  **`Settings`:**
     **Responsabilidade:** Armazenar as configurações externas e regras de negócio configuráveis, como a meta anual de jogos finalizados.
     * **Conceitos POO:** Ajuda a desacoplar as regras de negócio fixas do código principal, facilitando a manutenção.
+
+```mermaid
+%%{init: {'classDiagram': {'layout':'LR'}}}%%
+classDiagram
+
+    %% ===============================
+    %%        CLASSE BASE
+    %% ===============================
+
+    class Jogo {
+        -titulo: string
+        -genero: string
+        -plataforma: string
+        -horas_jogadas: float
+        -status: string
+        -avaliacao: int
+        +atualizar_progresso(horas)
+        +alterar_status(novo_status)
+        +registrar_avaliacao(nota)
+        +reiniciar()
+        +__str__()
+        +__repr__()
+        +__eq__()
+        +__lt__()
+    }
+
+    %% ===============================
+    %%       HERANÇA (SIMPLES)
+    %% ===============================
+
+    class JogoPC
+    class JogoConsole
+    class JogoMobile
+
+    JogoPC --|> Jogo
+    JogoConsole --|> Jogo
+    JogoMobile --|> Jogo
+
+
+    %% ===============================
+    %%        COLEÇÃO DE JOGOS
+    %% ===============================
+
+    class Colecao {
+        -nome: string
+        -jogos: list~Jogo~
+        +adicionar_jogo(jogo: Jogo)
+        +remover_jogo(jogo: Jogo)
+        +listar_jogos()
+    }
+
+    Colecao o-- "0..*" Jogo : contém >
+
+
+    %% ===============================
+    %%     CATÁLOGO (SERVIÇO)
+    %% ===============================
+
+    class Catalogo {
+        -jogos: list~Jogo~
+        +adicionar(jogo: Jogo)
+        +remover(jogo: Jogo)
+        +buscar_por_titulo(texto)
+        +filtrar_por_genero(genero)
+        +filtrar_por_status(status)
+        +ordenar_por_tempo()
+        +salvar()
+        +carregar()
+    }
+
+    Catalogo o-- "0..*" Jogo
+
+
+    %% ===============================
+    %%     CONFIGURAÇÕES (SETTINGS)
+    %% ===============================
+
+    class Settings {
+        -generos_favoritos: list
+        -meta_anual: int
+        -plataforma_principal: string
+        +carregar()
+        +salvar()
+    }
+
+
+    %% ===============================
+    %%     USUÁRIO (OPCIONAL)
+    %% ===============================
+    %% O doc .docx cita o usuário opcionalmente.
+    %% Ative se quiser incluir no futuro.
+
+    class Usuario {
+        -nome: string
+        -colecoes: list~Colecao~
+        +criar_colecao(nome)
+        +remover_colecao(nome)
+    }
+
+    Usuario o-- "0..*" Colecao
