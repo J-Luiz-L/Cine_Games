@@ -1,29 +1,147 @@
+from datetime import datetime
+from typing import Optional, Dict, Any
+
 class Jogo:
-    def __init__(self, titulo, genero, plataforma):
-        self.titulo = titulo
-        self.genero = genero
-        self.plataforma = plataforma
-        self._horas_jogadas = 0
-        self._status = "NÃO INICIADO"
+    """Classe base para jogos com encapsulamento forte."""
+
+    STATUS_VALIDOS = ("Não iniciado", "Jogando", "Pausado", "Finalizado")
+
+    def __init__(
+        self,
+        titulo: str,
+        genero: str,
+        plataforma: str = "Genérica",
+        status: str = "Não iniciado",
+        horas_jogadas: float = 0.0,
+        avaliacao: Optional[int] = None,
+        data_inicio: Optional[datetime] = None,
+        data_fim: Optional[datetime] = None,
+    ):
+        self._titulo = titulo
+        self._genero = genero
+        self._plataforma = plataforma
+        self._status = status
+        self._horas_jogadas = float(horas_jogadas)
         self._avaliacao = None
+        self._data_inicio = data_inicio
+        self._data_fim = data_fim
 
-    def atualizar_progresso(self, horas): pass
-    def alterar_status(self, novo_status): pass
-    def registrar_avaliacao(self, nota): pass
-    def reiniciar(self): pass
-    def __str__(self): pass
-    def __repr__(self): pass
-    def __eq__(self, other): pass
-    def __lt__(self, other): pass
+        if avaliacao is not None:
+            self.avaliacao = avaliacao
 
-class JogoPC(Jogo):
-    def __init__(self, titulo, genero):
-        super().__init__(titulo, genero, plataforma="PC")
+    # propriedades
+    @property
+    def titulo(self) -> str:
+        return self._titulo
 
-class JogoConsole(Jogo):
-    def __init__(self, titulo, genero):
-        super().__init__(titulo, genero, plataforma="Console")
+    @titulo.setter
+    def titulo(self, novo: str) -> None:
+        if not novo:
+            raise ValueError("Título não pode ser vazio")
+        self._titulo = novo
 
-class JogoMobile(Jogo):
-    def __init__(self, titulo, genero):
-        super().__init__(titulo, genero, plataforma="Mobile")
+    @property
+    def genero(self) -> str:
+        return self._genero
+
+    @genero.setter
+    def genero(self, novo: str) -> None:
+        if not novo:
+            raise ValueError("Gênero não pode ser vazio")
+        self._genero = novo
+
+    @property
+    def plataforma(self) -> str:
+        return self._plataforma
+
+    @plataforma.setter
+    def plataforma(self, novo: str) -> None:
+        if not novo:
+            raise ValueError("Plataforma não pode ser vazia")
+        self._plataforma = novo
+
+    @property
+    def status(self) -> str:
+        return self._status
+
+    def alterar_status(self, novo_status: str) -> None:
+        if novo_status not in self.STATUS_VALIDOS:
+            raise ValueError(f"Status inválido: {novo_status}")
+        self._status = novo_status
+
+    @property
+    def horas_jogadas(self) -> float:
+        return self._horas_jogadas
+
+    def registrar_progresso(self, horas: float) -> None:
+        horas = float(horas)
+        if horas < 0:
+            raise ValueError("Horas não podem ser negativas")
+        self._horas_jogadas += horas
+
+    @property
+    def avaliacao(self) -> Optional[int]:
+        return self._avaliacao
+
+    @avaliacao.setter
+    def avaliacao(self, nota: Optional[int]) -> None:
+        if nota is None:
+            self._avaliacao = None
+            return
+        if not (1 <= int(nota) <= 10):
+            raise ValueError("Avaliação deve ser inteiro entre 1 e 10")
+        self._avaliacao = int(nota)
+
+    @property
+    def data_inicio(self) -> Optional[datetime]:
+        return self._data_inicio
+
+    @data_inicio.setter
+    def data_inicio(self, d: Optional[datetime]) -> None:
+        self._data_inicio = d
+
+    @property
+    def data_fim(self) -> Optional[datetime]:
+        return self._data_fim
+
+    @data_fim.setter
+    def data_fim(self, d: Optional[datetime]) -> None:
+        self._data_fim = d
+
+    # serialização
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "titulo": self._titulo,
+            "genero": self._genero,
+            "plataforma": self._plataforma,
+            "status": self._status,
+            "horas_jogadas": self._horas_jogadas,
+            "avaliacao": self._avaliacao,
+            "data_inicio": self._data_inicio.isoformat() if self._data_inicio else None,
+            "data_fim": self._data_fim.isoformat() if self._data_fim else None,
+            "tipo": self.__class__.__name__,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]):
+        di = data.get("data_inicio")
+        df = data.get("data_fim")
+        data_inicio = datetime.fromisoformat(di) if di else None
+        data_fim = datetime.fromisoformat(df) if df else None
+
+        return cls(
+            titulo=data["titulo"],
+            genero=data["genero"],
+            plataforma=data.get("plataforma", "Genérica"),
+            status=data.get("status", "Não iniciado"),
+            horas_jogadas=data.get("horas_jogadas", 0.0),
+            avaliacao=data.get("avaliacao"),
+            data_inicio=data_inicio,
+            data_fim=data_fim,
+        )
+
+    def __repr__(self) -> str:
+        return (
+            f"<{self.__class__.__name__} titulo={self._titulo!r} genero={self._genero!r} "
+            f"plataforma={self._plataforma!r} horas={self._horas_jogadas} status={self._status!r}>"
+        )
