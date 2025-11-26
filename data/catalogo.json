@@ -1,1 +1,15 @@
-[]
+[
+  {
+    "titulo": "The Witcher 3",
+    "genero": "RPG",
+    "plataforma": "PC",
+    "status": "Não iniciado",
+    "horas_jogadas": 0.0,
+    "avaliacao": null,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoPC",
+    "requisitos": "Requisitos Medios",
+    "loja": null
+  }
+]

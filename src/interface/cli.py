@@ -1,15 +1,17 @@
 import argparse
 from pathlib import Path
-from ..serviços.catalogo_service import CatalogoService
-from ..modelos.jogo_pc import JogoPC
-from ..modelos.jogo_console import JogoConsole
-from ..modelos.jogo_mobile import JogoMobile
+from src.servicos.catalogo_service import CatalogoService
+from src.modelos.jogo_pc import JogoPC
+from src.modelos.jogo_console import JogoConsole
+from src.modelos.jogo_mobile import JogoMobile
 
 DB_PATH = Path(__file__).parent.parent.parent / "data" / "catalogo.json"
 
 def main():
     parser = argparse.ArgumentParser("Cine Games CLI")
     parser.add_argument("--listar", action="store_true", help="Listar jogos")
+    parser.add_argument("--relatorio", action="store_true", help="Gerar relatório inicial (total de jogos e horas jogadas)")
+    
     parser.add_argument("--add-pc", nargs=3, metavar=("TITULO","GENERO","REQUISITOS"),
                         help="Adicionar um jogo de PC: TITULO GENERO REQUISITOS")
     parser.add_argument("--add-console", nargs=3, metavar=("TITULO","GENERO","CONSOLE"),
@@ -26,28 +28,45 @@ def main():
             print(j)
         return
 
+    if args.relatorio:
+        rel = svc.gerar_relatorio_inicial()
+        print("\n--- Relatório Inicial ---")
+        print(f"Total de jogos cadastrados: {rel['total_jogos']}")
+        print(f"Total de horas jogadas: {rel['total_horas_jogadas']:.2f}h")
+        print("-------------------------\n")
+        return
+        
     if args.add_pc:
         titulo, genero, requisitos = args.add_pc
-        jogo = JogoPC(titulo=titulo, genero=genero, requisitos=requisitos)
-        svc.adicionar(jogo)
-        svc.salvar()
-        print("Jogo PC adicionado.")
+        try:
+            jogo = JogoPC(titulo=titulo, genero=genero, requisitos=requisitos)
+            svc.adicionar(jogo)
+            svc.salvar()
+            print(f"Jogo PC '{titulo}' adicionado e salvo.")
+        except ValueError as e:
+            print(f"ERRO: {e}")
         return
 
     if args.add_console:
         titulo, genero, console = args.add_console
-        jogo = JogoConsole(titulo=titulo, genero=genero, console=console)
-        svc.adicionar(jogo)
-        svc.salvar()
-        print("Jogo Console adicionado.")
+        try:
+            jogo = JogoConsole(titulo=titulo, genero=genero, console=console)
+            svc.adicionar(jogo)
+            svc.salvar()
+            print(f"Jogo Console '{titulo}' adicionado e salvo.")
+        except ValueError as e:
+            print(f"ERRO: {e}")
         return
 
     if args.add_mobile:
         titulo, genero, so = args.add_mobile
-        jogo = JogoMobile(titulo=titulo, genero=genero, sistema_operacional=so)
-        svc.adicionar(jogo)
-        svc.salvar()
-        print("Jogo Mobile adicionado.")
+        try:
+            jogo = JogoMobile(titulo=titulo, genero=genero, sistema_operacional=so)
+            svc.adicionar(jogo)
+            svc.salvar()
+            print(f"Jogo Mobile '{titulo}' adicionado e salvo.")
+        except ValueError as e:
+            print(f"ERRO: {e}")
         return
 
 if __name__ == "__main__":
