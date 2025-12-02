@@ -11,5 +11,18 @@
     "tipo": "JogoPC",
     "requisitos": "Requisitos Medios",
     "loja": null
+  },
+  {
+    "titulo": "Fifa 19",
+    "genero": "esportes",
+    "plataforma": "PC",
+    "status": "Não iniciado",
+    "horas_jogadas": 0.0,
+    "avaliacao": null,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoPC",
+    "requisitos": "Requisitos Medios",
+    "loja": null
   }
 ]

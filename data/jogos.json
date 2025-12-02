@@ -1,0 +1,68 @@
+[
+  {
+    "id": "796abe5a-452d-4b99-afef-41367c4e68fb",
+    "titulo": "Candy Crush",
+    "genero": "puzzle",
+    "plataforma": "Android",
+    "status": "Jogando",
+    "horas_jogadas": 1000000.0,
+    "avaliacao": 10,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoMobile",
+    "sistema_operacional": "Android"
+  },
+  {
+    "id": "80d97824-0e13-4f3d-a38c-c6951138164a",
+    "titulo": "Call of Duty",
+    "genero": "Tiro",
+    "plataforma": "PC",
+    "status": "Jogando",
+    "horas_jogadas": 1000.0,
+    "avaliacao": 9,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoPC",
+    "requisitos": "Processador i5  8 GB RAM  GTX 1050  Windows 10",
+    "loja": "steam"
+  },
+  {
+    "id": "ac1474b0-f057-4dd2-895f-d6b0faa624b6",
+    "titulo": "Free Fire",
+    "genero": "Tiro",
+    "plataforma": "Android",
+    "status": "Jogando",
+    "horas_jogadas": 1000.0,
+    "avaliacao": 9,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoMobile",
+    "sistema_operacional": "Android"
+  },
+  {
+    "id": "cbaae0ed-b406-4068-bcdc-cbc75c1c8285",
+    "titulo": "Fortnite",
+    "genero": "Tiro",
+    "plataforma": "Xbox Series S",
+    "status": "Jogando",
+    "horas_jogadas": 1000.0,
+    "avaliacao": 9,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoConsole",
+    "console": "Xbox Series S"
+  },
+  {
+    "id": "ae74a811-9e9f-4854-aa70-a4d820c935af",
+    "titulo": "Fortnite",
+    "genero": "Tiro",
+    "plataforma": "playstation 5",
+    "status": "Jogando",
+    "horas_jogadas": 1000.0,
+    "avaliacao": 9,
+    "data_inicio": null,
+    "data_fim": null,
+    "tipo": "JogoConsole",
+    "console": "playstation 5"
+  }
+]
