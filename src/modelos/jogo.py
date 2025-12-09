@@ -95,11 +95,20 @@ class Jogo:
 
     @avaliacao.setter
     def avaliacao(self, nota: Optional[int]) -> None:
-        if nota is None:
+    # Se o jogo NÃO está finalizado → avaliação deve ser None ou 0
+        if self._status != "Finalizado":
+            if nota not in (None, 0):
+                raise ValueError("Somente jogos finalizados podem receber avaliação.")
             self._avaliacao = None
             return
+
+    # Se está finalizado → nota obrigatória entre 1 e 10
+        if nota is None:
+         raise ValueError("Avaliação deve ser informada para jogos finalizados.")
+
         if not (1 <= int(nota) <= 10):
-            raise ValueError("Avaliação deve ser inteiro entre 1 e 10")
+             raise ValueError("Avaliação deve ser um inteiro entre 1 e 10 para jogos finalizados.")
+
         self._avaliacao = int(nota)
 
     @property

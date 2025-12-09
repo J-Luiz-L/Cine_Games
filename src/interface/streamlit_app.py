@@ -1,3 +1,4 @@
+# src/interface/streamlit_app.py
 import streamlit as st
 from src.servicos.catalogo_service import CatalogoService
 from src.modelos.jogo import Jogo
@@ -5,133 +6,170 @@ from src.modelos.jogo_pc import JogoPC
 from src.modelos.jogo_console import JogoConsole
 from src.modelos.jogo_mobile import JogoMobile
 
-# Serviço
-service = CatalogoService()
+# Inicializa serviço (usa as regras de negócio implementadas lá)
+if "service" not in st.session_state:
+    st.session_state.service = CatalogoService()
 
-st.title("🎮 Catálogo de Jogos - Cine Games")
+service = st.session_state.service
 
+st.set_page_config(page_title="Cine Games", page_icon="🎮", layout="wide")
+st.title("🎮 Cine Games — Catálogo de Jogos")
 
-# ----------------------------------------------------
-# 📝 Formulário de Cadastro
-# ----------------------------------------------------
-st.header("Cadastrar novo jogo")
+# -----------------------
+# Aviso da meta anual
+# -----------------------
+meta_msg = service.verificar_meta_finalizados() if hasattr(service, "verificar_meta_finalizados") else None
+if meta_msg:
+    st.warning(meta_msg)
 
-titulo = st.text_input("Título do jogo")
-genero = st.text_input("Gênero")
-plataforma = st.selectbox("Plataforma", ["PC", "Console", "Mobile"])
-status = st.selectbox("Status", Jogo.STATUS_VALIDOS)
-horas = st.number_input("Horas jogadas", min_value=0.0, step=0.5)
-avaliacao = st.number_input("Avaliação 0–10", min_value=0, max_value=10)
+# -----------------------
+# Layout com duas colunas: cadastro | busca/filtros
+# -----------------------
+col1, col2 = st.columns([2, 3])
 
-# Campos adicionais conforme a subclasse
-requisitos = None
-loja = None
-console = None
-sistema_operacional = None
+with col1:
+    st.header("➕ Cadastrar novo jogo")
 
-if plataforma == "PC":
-    requisitos = st.text_input("Requisitos do sistema (OBRIGATÓRIO)")
-    loja = st.text_input("Loja (Opcional)")
+    titulo = st.text_input("Título")
+    genero = st.text_input("Gênero")
+    plataforma = st.selectbox("Plataforma", ["PC", "Console", "Mobile"])
+    status = st.selectbox("Status", Jogo.STATUS_VALIDOS)
+    horas_jogadas = st.number_input("Horas jogadas", min_value=0.0, step=0.5, value=0.0)
+    avaliacao = st.number_input("Avaliação (0–10)", min_value=0, max_value=10, value=0)
 
-elif plataforma == "Console":
-    console = st.text_input("Console (Ex: PS5, Xbox Series S) (OBRIGATÓRIO)")
+    # Campos por plataforma
+    requisitos = ""
+    loja = ""
+    console = ""
+    sistema_operacional = ""
 
-elif plataforma == "Mobile":
-    sistema_operacional = st.selectbox("Sistema Operacional", ["Android", "iOS"])
+    if plataforma == "PC":
+        requisitos = st.text_input("Requisitos (OBRIGATÓRIO)", help="Ex.: i5, 8GB RAM, GTX 1050")
+        loja = st.text_input("Loja (Opcional) ex: Steam")
 
+    elif plataforma == "Console":
+        console = st.text_input("Console (OBRIGATÓRIO) ex: PS5, Xbox Series S")
 
-# Botão cadastrar
-if st.button("Cadastrar jogo"):
-    try:
-        if plataforma == "PC":
-            jogo = JogoPC(
-                titulo=titulo,
-                genero=genero,
-                requisitos=requisitos,
-                loja=loja,
-                status=status,
-                horas_jogadas=horas,
-                avaliacao=avaliacao
-            )
+    else:  # Mobile
+        sistema_operacional = st.selectbox("Sistema operacional (OBRIGATÓRIO)", ["Android", "iOS"])
 
-        elif plataforma == "Console":
-            jogo = JogoConsole(
-                titulo=titulo,
-                genero=genero,
-                console=console,
-                status=status,
-                horas_jogadas=horas,
-                avaliacao=avaliacao
-            )
+    if st.button("Salvar jogo"):
+        try:
+            # validações mínimas no UI (serviço fará as regras completas)
+            if not titulo or not genero:
+                st.error("Título e gênero são obrigatórios.")
+            else:
+                if plataforma == "PC":
+                    # Requisitos obrigatório conforme sua classe
+                    jogo = JogoPC(
+                        titulo=titulo,
+                        genero=genero,
+                        requisitos=requisitos,
+                        loja=loja or None,
+                        status=status,
+                        horas_jogadas=horas_jogadas,
+                        avaliacao=avaliacao
+                    )
+                elif plataforma == "Console":
+                    jogo = JogoConsole(
+                        titulo=titulo,
+                        genero=genero,
+                        console=console,
+                        status=status,
+                        horas_jogadas=horas_jogadas,
+                        avaliacao=avaliacao
+                    )
+                else:  # Mobile
+                    jogo = JogoMobile(
+                        titulo=titulo,
+                        genero=genero,
+                        sistema_operacional=sistema_operacional,
+                        status=status,
+                        horas_jogadas=horas_jogadas,
+                        avaliacao=avaliacao
+                    )
 
-        else:  # MOBILE
-            jogo = JogoMobile(
-                titulo=titulo,
-                genero=genero,
-                sistema_operacional=sistema_operacional,
-                status=status,
-                horas_jogadas=horas,
-                avaliacao=avaliacao
-            )
+                # envia para o serviço (aplica todas as regras)
+                service.adicionar_jogo(jogo)
+                st.success(f"Jogo '{titulo}' cadastrado com sucesso!")
+                st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao cadastrar jogo: {e}")
 
-        service.adicionar_jogo(jogo)
-        st.success(f"Jogo '{titulo}' adicionado!")
-    except Exception as e:
-        st.error(f"Erro ao cadastrar jogo: {e}")
+with col2:
+    st.header("🔎 Buscar / Filtrar")
+    jogos_all = service.listar_jogos()
 
+    # opções dinâmicas
+    generos = sorted({j.genero for j in jogos_all})
+    plataformas = sorted({j.plataforma for j in jogos_all})
+    status_lista = list(Jogo.STATUS_VALIDOS)
 
-st.divider()
+    f_genero = st.selectbox("Filtrar por gênero", [""] + generos)
+    f_plataforma = st.selectbox("Filtrar por plataforma", [""] + plataformas)
+    f_status = st.selectbox("Filtrar por status", [""] + status_lista)
+    texto_busca = st.text_input("Buscar por título (contém)")
 
+    # aplicar filtros
+    jogos = jogos_all
+    if f_genero:
+        jogos = [j for j in jogos if j.genero == f_genero]
+    if f_plataforma:
+        jogos = [j for j in jogos if j.plataforma == f_plataforma]
+    if f_status:
+        jogos = [j for j in jogos if j.status == f_status]
+    if texto_busca:
+        jogos = [j for j in jogos if texto_busca.lower() in j.titulo.lower()]
 
-# ----------------------------------------------------
-# 🔍 FILTRAGEM
-# ----------------------------------------------------
-st.header("Filtrar jogos")
+st.markdown("---")
 
-todos = service.listar_jogos()
-generos = sorted({j.genero for j in todos})
-plataformas = sorted({j.plataforma for j in todos})
-status_lista = Jogo.STATUS_VALIDOS
-
-f_genero = st.selectbox("Filtrar por gênero", [""] + generos)
-f_status = st.selectbox("Filtrar por status", [""] + list(status_lista))
-f_plataforma = st.selectbox("Filtrar por plataforma", [""] + plataformas)
-
-if st.button("Aplicar filtros"):
-    jogos = service.filtrar(
-        genero=f_genero or None,
-        status=f_status or None,
-        plataforma=f_plataforma or None
-    )
+# -----------------------
+# Lista detalhada com ações
+# -----------------------
+st.header("📚 Jogos cadastrados")
+if not jogos:
+    st.info("Nenhum jogo para exibir com os filtros atuais.")
 else:
-    jogos = service.listar_jogos()
+    for jogo in jogos:
+        with st.expander(f"{jogo.titulo} — {jogo.plataforma} ({jogo.status})"):
+            cols = st.columns([3, 1, 1])
+            with cols[0]:
+                st.markdown(f"**Gênero:** {jogo.genero}")
+                st.markdown(f"**Horas jogadas:** {jogo.horas_jogadas}")
+                st.markdown(f"**Avaliação:** {jogo.avaliacao}")
+                st.markdown(f"**ID:** `{jogo.id}`")
 
-st.divider()
+                # atributos específicos
+                if hasattr(jogo, "requisitos"):
+                    st.markdown(f"**Requisitos:** {jogo.requisitos}")
+                if hasattr(jogo, "loja") and jogo.loja:
+                    st.markdown(f"**Loja:** {jogo.loja}")
+                if hasattr(jogo, "console"):
+                    st.markdown(f"**Console:** {jogo.console}")
+                if hasattr(jogo, "sistema_operacional"):
+                    st.markdown(f"**Sistema operacional:** {jogo.sistema_operacional}")
 
+            # Ações: editar horas / remover
+            with cols[1]:
+                novo_horas = st.number_input(f"Horas ({jogo.titulo})", value=float(jogo.horas_jogadas), min_value=0.0, step=0.5, key=f"horas-{jogo.id}")
+                if st.button("Atualizar horas", key=f"upd-{jogo.id}"):
+                    try:
+                        # usa o serviço para validar atualização de horas
+                        if hasattr(service, "atualizar_horas"):
+                            service.atualizar_horas(jogo.id, novo_horas)
+                        else:
+                            # fallback: atualizar diretamente e confiar que regras já estão no service
+                            jogo._horas_jogadas = novo_horas
+                        st.success("Horas atualizadas.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao atualizar horas: {e}")
 
-# ----------------------------------------------------
-# 📄 LISTA DE JOGOS
-# ----------------------------------------------------
-st.header("Jogos cadastrados")
-
-for j in jogos:
-    with st.expander(f"{j.titulo} ({j.plataforma})"):
-        st.write(f"**Gênero:** {j.genero}")
-        st.write(f"**Status:** {j.status}")
-        st.write(f"**Horas:** {j.horas_jogadas}")
-        st.write(f"**Avaliação:** {j.avaliacao}")
-
-        # Campos específicos
-        if hasattr(j, "requisitos"):
-            st.write(f"**Requisitos:** {j.requisitos}")
-        if hasattr(j, "loja") and j.loja:
-            st.write(f"**Loja:** {j.loja}")
-        if hasattr(j, "console"):
-            st.write(f"**Console:** {j.console}")
-        if hasattr(j, "sistema_operacional"):
-            st.write(f"**Sistema Operacional:** {j.sistema_operacional}")
-
-        if st.button(f"Remover {j.titulo}", key=j.id):
-            service.remover_jogo(j.id)
-            st.warning(f"{j.titulo} removido.")
-            st.experimental_rerun()
+            with cols[2]:
+                if st.button("Remover", key=f"rm-{jogo.id}"):
+                    try:
+                        service.remover_jogo(jogo.id)
+                        st.warning(f"'{jogo.titulo}' removido.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao remover: {e}")
