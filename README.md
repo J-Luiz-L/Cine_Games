@@ -53,9 +53,9 @@ Estrutura mínima e funcional com:
 - `repositorio.py` utilitário (opcional)
 
 Como usar:
-- Instale dependências (se houver)
-- Rodar CLI: `python main.py --listar` ou `python main.py --add-pc "Titulo" "Genero" "Req"`
-- Rodar testes: `pytest -q` (os testes exemplo estão em `tests/`)
+- Instale dependências 
+- Rode "main.py" ou no terminal rode "python -m streamlit run src/interface/streamlit_app.py"
+
 
 ```mermaid
 %%{init: {'classDiagram': {'layout':'LR'}}}%%
