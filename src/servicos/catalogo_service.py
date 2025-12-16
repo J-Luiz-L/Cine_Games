@@ -1,42 +1,24 @@
 import json
-import uuid
+from collections import Counter
+from src.modelos.jogo import Jogo
+from src.modelos.colecao import Colecao
 
 
 class CatalogoService:
     """
     Serviço responsável por gerenciar o catálogo de jogos.
-
-    Esta classe concentra todas as regras de negócio do sistema,
-    como validações, limites, cadastro, remoção e atualização
-    dos jogos cadastrados.
+    Contém todas as regras de negócio.
     """
 
     def __init__(self):
-        """
-        Inicializa o serviço de catálogo.
-
-        Atributos:
-            jogos (list): Lista de jogos cadastrados no catálogo.
-            config (dict): Configurações carregadas do arquivo settings.json
-                           ou valores padrão.
-        """
         self.jogos = []
+        self.colecoes = {}
         self.config = self._carregar_settings()
 
     # -----------------------------
-    #  Carrega configurações
+    # Configurações
     # -----------------------------
     def _carregar_settings(self):
-        """
-        Carrega as configurações do sistema a partir do arquivo settings.json.
-
-        Returns:
-            dict: Dicionário contendo as configurações do sistema, como:
-                  - meta_anual_finalizados
-                  - limite_jogando
-
-        Caso o arquivo não exista, retorna valores padrão.
-        """
         try:
             with open("settings.json", "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -47,147 +29,98 @@ class CatalogoService:
             }
 
     # -----------------------------
-    #  Normaliza status
+    # Catálogo
     # -----------------------------
-    def _normalize_status(self, raw_status: str) -> str:
-        """
-        Normaliza o texto do status recebido para um valor padrão do sistema.
-
-        Args:
-            raw_status (str): Status informado pelo usuário ou interface.
-
-        Returns:
-            str: Status normalizado, podendo ser:
-                 - "Jogando"
-                 - "Finalizado"
-                 - "Pausado"
-                 - "Não iniciado"
-        """
-        if not raw_status:
-            return "Não iniciado"
-
-        s = raw_status.strip().lower()
-
-        if "final" in s:
-            return "Finalizado"
-        if "jog" in s:
-            return "Jogando"
-        if "paus" in s:
-            return "Pausado"
-        if "não" in s or "nao" in s or "iniciado" in s:
-            return "Não iniciado"
-
-        return "Não iniciado"
-
-    # -----------------------------
-    #  Adicionar Jogos
-    # -----------------------------
-    def adicionar_jogo(self, jogo):
-        """
-        Adiciona um novo jogo ao catálogo, aplicando todas as regras de negócio.
-
-        Regras aplicadas:
-            - Não permite jogos duplicados (título + plataforma)
-            - Horas jogadas não podem ser negativas
-            - Limita quantidade de jogos com status "Jogando"
-            - Avaliação só é permitida para jogos finalizados
-
-        Args:
-            jogo (Jogo): Instância de um jogo (PC, Console ou Mobile).
-
-        Raises:
-            ValueError: Caso alguma regra de negócio seja violada.
-        """
-
-        # Normaliza e aplica o status via método do modelo
-        try:
-            canonical = self._normalize_status(getattr(jogo, "status", ""))
-            jogo.alterar_status(canonical)
-        except Exception as e:
-            raise ValueError(f"Status inválido: {e}")
-
-        #  Verificar duplicação
+    def adicionar_jogo(self, jogo: Jogo):
+        # Duplicidade
         for j in self.jogos:
-            if j.titulo.lower() == jogo.titulo.lower() and j.plataforma.lower() == jogo.plataforma.lower():
-                raise ValueError("Já existe um jogo com esse título na mesma plataforma.")
+            if j.titulo.lower() == jogo.titulo.lower() and j.plataforma == jogo.plataforma:
+                raise ValueError("Já existe um jogo com esse título nessa plataforma.")
 
-        #  Horas jogadas não podem ser negativas
-        if jogo.horas_jogadas < 0:
-            raise ValueError("Horas jogadas não podem ser negativas.")
-
-        #  Limite de jogos com status "Jogando"
-        limite = self.config.get("limite_jogando", 3)
+        # Limite de jogos jogando
         if jogo.status == "Jogando":
             jogando = [j for j in self.jogos if j.status == "Jogando"]
-            if len(jogando) >= limite:
-                raise ValueError(f"Você já possui {limite} jogos em andamento.")
+            if len(jogando) >= self.config["limite_jogando"]:
+                raise ValueError("Limite de jogos jogando atingido.")
 
-        #  Regras para avaliação
-        if jogo.status != "Finalizado":
-            jogo._avaliacao = None
-        else:
-            if jogo.avaliacao is None or not (0 <= int(jogo.avaliacao) <= 10):
-                raise ValueError("Jogos finalizados devem ter avaliação entre 0 e 10.")
+        # Validação de status finalizado
+        if jogo.status == "Finalizado" and jogo.horas_jogadas < 1:
+            raise ValueError("Não é possível adicionar um jogo finalizado com menos de 1 hora jogada.")
 
-        #  Adiciona ao catálogo
+        # Adiciona o jogo
         self.jogos.append(jogo)
 
-    # -----------------------------
-    #  Remover Jogo
-    # -----------------------------
-    def remover_jogo(self, jogo_id):
-        """
-        Remove um jogo do catálogo pelo seu ID.
-
-        Args:
-            jogo_id (str): Identificador único do jogo.
-        """
+    def remover_jogo(self, jogo_id: str):
         self.jogos = [j for j in self.jogos if j.id != jogo_id]
 
-    # -----------------------------
-    #  Listar os Jogos
-    # -----------------------------
     def listar_jogos(self):
-        """
-        Retorna a lista completa de jogos cadastrados.
+        return self.jogos
 
-        Returns:
-            list: Lista de objetos do tipo Jogo.
-        """
+    def buscar_por_titulo(self, termo: str):
+        termo = termo.lower()
+        return [j for j in self.jogos if termo in j.titulo.lower()]
+
+    def ordenar(self, criterio: str, reverso: bool = True):
+        if criterio == "horas":
+            return sorted(self.jogos, key=lambda j: j.horas_jogadas, reverse=reverso)
+        if criterio == "avaliacao":
+            return sorted(self.jogos, key=lambda j: j.avaliacao or 0, reverse=reverso)
+        if criterio == "ano":
+            return sorted(
+                self.jogos,
+                key=lambda j: j.data_inicio.year if j.data_inicio else 0,
+                reverse=reverso
+            )
         return self.jogos
 
     # -----------------------------
-    #  Atualizar as horas jogadas
+    # Coleções
     # -----------------------------
-    def atualizar_horas(self, jogo_id, novas_horas):
-        """
-        Atualiza a quantidade de horas jogadas de um jogo específico.
+    def criar_colecao(self, nome: str):
+        if nome in self.colecoes:
+            raise ValueError("Coleção já existe.")
+        self.colecoes[nome] = Colecao(nome)
 
-        Args:
-            jogo_id (str): ID do jogo a ser atualizado.
-            novas_horas (float): Novo total de horas jogadas.
+    def adicionar_em_colecao(self, nome_colecao: str, jogo: Jogo):
+        self.colecoes[nome_colecao].adicionar(jogo)
 
-        Raises:
-            ValueError: Se o jogo não existir ou se as horas diminuírem.
-        """
-        for j in self.jogos:
-            if j.id == jogo_id:
-                if novas_horas < j.horas_jogadas:
-                    raise ValueError("Horas jogadas não podem diminuir.")
-                j.horas_jogadas = novas_horas
-                return
-        raise ValueError("Jogo não encontrado.")
+    def listar_colecao(self, nome_colecao: str):
+        return self.colecoes[nome_colecao].listar()
 
-   # -----------------------------
-   # conferir meta anual 
-   # -----------------------------
+    # -----------------------------
+    # Estatísticas
+    # -----------------------------
+    def total_horas(self) -> float:
+        return sum(j.horas_jogadas for j in self.jogos)
+
+    def media_avaliacao(self) -> float:
+        notas = [j.avaliacao for j in self.jogos if j.status == "Finalizado" and j.avaliacao]
+        return round(sum(notas) / len(notas), 2) if notas else 0.0
+
+    def percentual_por_status(self):
+        total = len(self.jogos)
+        if total == 0:
+            return {}
+
+        resultado = {}
+        for status in Jogo.STATUS_VALIDOS:
+            qtd = len([j for j in self.jogos if j.status == status])
+            resultado[status] = round((qtd / total) * 100, 2)
+
+        return resultado
+
+    def top_5_mais_jogados(self):
+        return sorted(self.jogos, key=lambda j: j.horas_jogadas, reverse=True)[:5]
+
+    def genero_favorito(self):
+        contagem = Counter(j.genero for j in self.jogos)
+        return contagem.most_common(1)[0] if contagem else None
+
+    def plataforma_principal(self):
+        contagem = Counter(j.plataforma for j in self.jogos)
+        return contagem.most_common(1)[0] if contagem else None
+
     def verificar_meta_finalizados(self):
-        """
-        Verifica se a meta anual de jogos finalizados foi atingida.
-
-        Returns:
-            str: Mensagem informando o progresso ou confirmação da meta.
-        """
         finalizados = len([j for j in self.jogos if j.status == "Finalizado"])
         meta = self.config["meta_anual_finalizados"]
 

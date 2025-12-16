@@ -263,3 +263,26 @@ class Jogo:
             f"genero={self._genero!r} plataforma={self._plataforma!r} "
             f"horas={self._horas_jogadas} status={self._status!r}>"
         )
+    
+    def alterar_status(self, novo_status: str) -> None:
+        """
+        Altera o status do jogo respeitando regras de negócio.
+        """
+        if novo_status not in self.STATUS_VALIDOS:
+            raise ValueError(f"Status inválido: {novo_status}")
+
+        if novo_status == "Finalizado" and self._horas_jogadas < 1:
+            raise ValueError("Não é possível finalizar um jogo com menos de 1h jogada.")
+
+        self._status = novo_status
+
+    def reiniciar(self) -> None:
+        """
+        Reinicia o jogo, voltando para 'Jogando' e zerando horas.
+        """
+        self._status = "Jogando"
+        self._horas_jogadas = 0.0
+        self._avaliacao = None
+        self._data_inicio = None
+        self._data_fim = None
+
