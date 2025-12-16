@@ -1,4 +1,3 @@
-# tests/test_catalogo_service.py
 import os
 import json
 from pathlib import Path
@@ -15,7 +14,6 @@ def test_salvar_carregar_tmp(tmp_path):
     svc.adicionar(j)
     svc.salvar()
 
-    # carregar novo serviço a partir do arquivo
     svc2 = CatalogoService(caminho=db)
     svc2.carregar()
     lista = svc2.listar()
@@ -30,11 +28,9 @@ def test_remover_e_atualizar(tmp_path):
     svc.adicionar(j)
     svc.salvar()
 
-    # remover por id
     assert svc.remover_por_id(j.id) is True
     assert len(svc.listar()) == 0
 
-    # adicionar e atualizar
     svc.adicionar(j)
     j.titulo = "B"
     svc.atualizar(j)
